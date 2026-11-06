@@ -1,0 +1,13 @@
+# Automatic HTTPS. DOMAIN comes from .env (e.g. pulse.yourcompany.com). Point the domain's DNS A record to this server first.
+{$DOMAIN} {
+	encode gzip
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle /health {
+		reverse_proxy api:4000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}

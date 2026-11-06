@@ -1,0 +1,32 @@
+# Render Blueprint: deploys the API and the website from this repo.
+# 1) Push this folder to a GitHub repo. 2) Render dashboard > New > Blueprint > pick the repo.
+# 3) Fill the values marked sync:false. 4) Open the web URL.
+# Not tested against a live Render account: check the first deploy logs.
+services:
+  - type: web
+    name: twwios-api
+    runtime: node
+    rootDir: api
+    buildCommand: npm install --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - { key: NODE_ENV, value: production }
+      - { key: MONGODB_URI, sync: false }          # free MongoDB Atlas connection string
+      - { key: ANTHROPIC_API_KEY, sync: false }    # powers Settle, Scribe, Vox, Mira and the chatbot
+      - { key: AUTH_SECRET, generateValue: true }
+      - { key: ENC_KEY, generateValue: true }
+      - { key: PULSE_ADMIN_KEY, generateValue: true }
+      - { key: PUBLIC_URL, sync: false }           # the web URL, e.g. https://twwios-web.onrender.com
+      - { key: CORS_ORIGIN, sync: false }          # same web URL
+      - { key: WA_APP_SECRET, sync: false }        # from Meta, needed for the Relay webhook in production
+      - { key: INQUIRY_TO, sync: false }           # optional: email for new inquiries
+  - type: web
+    name: twwios-web
+    runtime: node
+    rootDir: web
+    buildCommand: npm install && npm run build
+    startCommand: npm run start -- -p $PORT
+    envVars:
+      - { key: API_URL, sync: false }              # the API URL, e.g. https://twwios-api.onrender.com
+      - { key: NEXT_PUBLIC_SITE_URL, sync: false }

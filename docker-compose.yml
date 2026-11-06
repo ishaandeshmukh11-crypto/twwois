@@ -1,0 +1,31 @@
+# Production: cp .env.example .env ; cp api/.env.example api/.env ; fill both ; docker compose up -d --build
+services:
+  caddy:
+    image: caddy:2
+    restart: always
+    ports: ["80:80", "443:443"]
+    environment: { DOMAIN: "${DOMAIN:?set DOMAIN in .env}" }
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro", "caddy_data:/data", "caddy_config:/config"]
+    depends_on: [web, api]
+  mongo:
+    image: mongo:7
+    restart: always
+    volumes: ["mongo:/data/db"]          # not exposed to the internet
+  api:
+    build: ./api
+    restart: always
+    env_file: ./api/.env
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongo:27017/trios
+      PUBLIC_URL: "https://${DOMAIN}"
+      CORS_ORIGIN: "https://${DOMAIN}"
+    depends_on: [mongo]
+    healthcheck: { test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"], interval: 30s, timeout: 5s, retries: 5 }
+  web:
+    build:
+      context: ./web
+      args: { API_URL: "http://api:4000" }
+    restart: always
+    depends_on: [api]
+volumes: { mongo: {}, caddy_data: {}, caddy_config: {} }
